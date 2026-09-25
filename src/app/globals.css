@@ -1,0 +1,84 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-50: #f0f9f4;
+  --color-brand-100: #dcf1e3;
+  --color-brand-200: #b9e3c9;
+  --color-brand-500: #12854e;
+  --color-brand-600: #0e6b40;
+  --color-brand-700: #0b5633;
+  --color-brand-800: #094429;
+  --color-brand-900: #073521;
+  --color-sand-50: #fbf7f0;
+  --color-sand-100: #f5ecdc;
+  --color-sand-200: #eaddc2;
+  --color-accent: #ee7b30;
+  --color-accent-dark: #d9681f;
+  --color-ink: #14201a;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  --font-serif: var(--font-playfair), "Playfair Display", Georgia, "Times New Roman",
+    serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-white text-ink font-sans antialiased;
+}
+
+.container-x {
+  @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+}
+
+/* Base button styles duplicated into each variant because Tailwind v4
+   does not allow @apply of custom classes. */
+.btn,
+.btn-primary,
+.btn-outline,
+.btn-white,
+.btn-ghost {
+  @apply inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold transition-colors;
+}
+.btn-primary {
+  @apply bg-brand-600 text-white hover:bg-brand-700;
+}
+.btn-outline {
+  @apply border border-brand-600 text-brand-700 hover:bg-brand-50;
+}
+.btn-white {
+  @apply bg-white text-brand-800 hover:bg-sand-100;
+}
+.btn-ghost {
+  @apply text-gray-700 hover:bg-gray-100;
+}
+.btn-sm {
+  @apply px-3 py-1.5 text-xs;
+}
+
+.card {
+  @apply rounded-2xl border border-gray-200 bg-white shadow-sm;
+}
+
+.input {
+  @apply w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-ink placeholder-gray-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100;
+}
+.label {
+  @apply mb-1 block text-sm font-medium text-gray-700;
+}
+
+.badge {
+  @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+}
+
+.btn-accent {
+  @apply bg-accent text-white hover:bg-accent-dark;
+}
+.font-display {
+  font-family: var(--font-serif);
+}
+.glass-card {
+  @apply rounded-2xl border border-white/20 bg-white/10 backdrop-blur-md;
+}
