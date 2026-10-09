@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import { SEED_DESTINATIONS } from "../data/seed/destinations";
 import { SEED_TOURS, SEED_SUPPLIERS, STD_INCLUDES, STD_EXCLUDES, STD_FAQS } from "../data/seed/tours";
 import { SEED_BLOG, SEED_CMS } from "../data/seed/content";
-import { newId, nowIso } from "./db";
+import { nowIso } from "./db";
 
 type Sql = DatabaseSync;
 
@@ -62,7 +62,11 @@ const SEED_BOOKINGS: {
 export function seedDatabase(db: Sql): void {
   const now = nowIso();
   const hash = (pw: string) => bcrypt.hashSync(pw, 10);
-  const id = (p: string) => newId(p);
+  // Deterministic ids: the seed runs once per serverless instance (e.g. Vercel
+  // /tmp SQLite), so every instance must derive the exact same rows — a random
+  // id would make session tokens and cross-page lookups fail between instances.
+  let seq = 0;
+  const id = (p: string) => `${p}_sd${String(++seq).padStart(4, "0")}`;
 
   // ---------------------------------------------------------------- users
   const adminId = id("usr");
