@@ -15,7 +15,9 @@ export default async function EditSupplierTourPage({ params }: { params: Promise
     const supplier = get<{ id: string }>("SELECT id FROM suppliers WHERE user_id = ?", user.id);
     if (!supplier || tour.supplier_id !== supplier.id) notFound();
   }
-  const destinations = all<{ slug: string; name: string }>("SELECT slug, name FROM destinations ORDER BY sort_order");
+  const destinations = all<{ slug: string; name: string; region: string | null }>(
+    "SELECT slug, name, region FROM destinations ORDER BY sort_order",
+  );
   const suppliers = isAdmin
     ? all<{ id: string; company_name: string }>("SELECT id, company_name FROM suppliers ORDER BY company_name")
     : undefined;

@@ -8,7 +8,7 @@ export default async function AdminEditTourPage({ params }: { params: Promise<{ 
   const { id } = await params;
   const tour = await fetchTour(id);
   if (!tour) notFound();
-  const destinations = all<{ slug: string; name: string }>("SELECT slug, name FROM destinations ORDER BY sort_order");
+  const destinations = all<{ slug: string; name: string; region: string | null }>("SELECT slug, name, region FROM destinations ORDER BY sort_order");
   const suppliers = all<{ id: string; company_name: string }>("SELECT id, company_name FROM suppliers ORDER BY company_name");
 
   return (

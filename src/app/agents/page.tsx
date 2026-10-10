@@ -181,7 +181,7 @@ async function AgentPortal({ userId }: { userId: string }) {
         </div>
 
         <div className="grid gap-8 lg:grid-cols-[380px_1fr]">
-          <QuoteBuilder tours={tours.map((t) => ({ id: t.id, title: t.title, base_price: t.base_price, agent_price: t.agent_price, sale_price: t.sale_price }))} />
+          <QuoteBuilder tours={tours.map((t) => ({ id: t.id, title: t.title, base_price: t.base_price, agent_price: t.agent_price, sale_price: t.sale_price, agent_discount_pct: t.agent_discount_pct }))} />
 
           <div className="space-y-8">
             {/* NET RATE CATALOG */}
@@ -193,7 +193,12 @@ async function AgentPortal({ userId }: { userId: string }) {
               <div className="mt-4 space-y-2">
                 {tours.slice(0, 12).map((t) => {
                   const retail = t.sale_price ?? t.base_price;
-                  const net = t.agent_price ?? Math.round(retail * 0.85 * 100) / 100;
+                  // Explicit net price > supplier's discount % > no discount (retail).
+                  const net =
+                    t.agent_price ??
+                    (t.agent_discount_pct != null && t.agent_discount_pct > 0
+                      ? Math.round(retail * (1 - t.agent_discount_pct / 100) * 100) / 100
+                      : retail);
                   return (
                     <div key={t.id} className="card flex flex-wrap items-center justify-between gap-3 p-4">
                       <div>

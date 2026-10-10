@@ -345,4 +345,40 @@ export const MIGRATIONS: string[] = [
     updated_at TEXT NOT NULL
   );
   `,
+
+  // --------------------------------------------- v2 multi-attribute + pricing
+  // Supplier preferred currency, multi destination/region/category on tours,
+  // optional agent discount percentage, option descriptions and pax-tier pricing.
+  `
+  ALTER TABLE suppliers ADD COLUMN preferred_currency TEXT NOT NULL DEFAULT 'USD';
+
+  ALTER TABLE tours ADD COLUMN destinations TEXT NOT NULL DEFAULT '[]'; -- JSON array of destination slugs
+  ALTER TABLE tours ADD COLUMN regions       TEXT NOT NULL DEFAULT '[]'; -- JSON array of region names
+  ALTER TABLE tours ADD COLUMN categories    TEXT NOT NULL DEFAULT '[]'; -- JSON array of category names
+  ALTER TABLE tours ADD COLUMN agent_discount_pct REAL;                  -- NULL = no agent/member discount
+
+  ALTER TABLE tour_options ADD COLUMN description TEXT;
+
+  -- Backfill the arrays from the legacy single-value columns (pre-seed rows;
+  -- the seeder writes the arrays itself for fresh databases).
+  UPDATE tours SET destinations = COALESCE(
+           (SELECT json_group_array(slug) FROM destinations WHERE id = tours.destination_id), '[]')
+   WHERE destination_id IS NOT NULL;
+  UPDATE tours SET regions   = json_array(region) WHERE region   IS NOT NULL AND region   <> '';
+  UPDATE tours SET categories = json_array(category) WHERE category IS NOT NULL AND category <> '';
+
+  -- Group-size (pax) pricing tiers. option_id = '' means the tour-level tier
+  -- ladder (used for the card "from" price); otherwise it belongs to an option.
+  CREATE TABLE tour_price_tiers (
+    id         TEXT PRIMARY KEY,
+    tour_id    TEXT NOT NULL REFERENCES tours(id) ON DELETE CASCADE,
+    option_id  TEXT NOT NULL DEFAULT '',
+    label      TEXT,
+    min_pax    INTEGER NOT NULL DEFAULT 1,
+    max_pax    INTEGER,               -- NULL = no upper limit
+    price      REAL NOT NULL,
+    sort_order INTEGER NOT NULL DEFAULT 0
+  );
+  CREATE INDEX idx_price_tiers_tour ON tour_price_tiers(tour_id, option_id, min_pax);
+  `,
 ];

@@ -29,21 +29,21 @@ export async function GET(req: NextRequest) {
   const params: (string | number)[] = [];
 
   if (q) {
-    where.push("(t.title LIKE ? OR t.short_description LIKE ? OR t.region LIKE ? OR d.name LIKE ?)");
+    where.push("(t.title LIKE ? OR t.short_description LIKE ? OR t.region LIKE ? OR t.regions LIKE ? OR d.name LIKE ?)");
     const like = `%${q}%`;
-    params.push(like, like, like, like);
+    params.push(like, like, like, like, like);
   }
   if (destination) {
-    where.push("d.slug = ?");
-    params.push(destination);
+    where.push("(d.slug = ? OR t.destinations LIKE ?)");
+    params.push(destination, `%"${destination}"%`);
   }
   if (category) {
-    where.push("t.category = ?");
-    params.push(category);
+    where.push("(t.category = ? OR t.categories LIKE ?)");
+    params.push(category, `%"${category}"%`);
   }
   if (region) {
-    where.push("t.region LIKE ?");
-    params.push(`%${region}%`);
+    where.push("(t.region LIKE ? OR t.regions LIKE ?)");
+    params.push(`%${region}%`, `%${region}%`);
   }
   if (minDays) {
     where.push("t.duration_days >= ?");

@@ -9,6 +9,7 @@ import { upsertAvailability } from "./availability";
 import { notify, notifyAdmins, deliverEmails } from "./notify";
 import { emails, queueEmail } from "./email";
 import { profileSchema } from "./validation";
+import { SUPPORTED_CURRENCIES } from "./currency";
 import type { Booking, User } from "./types";
 
 /**
@@ -254,6 +255,42 @@ export async function updateProfileAction(_prev: { error?: string; ok?: boolean 
   return { ok: true };
 }
 
+/**
+ * Supplier profile settings — the preferred currency is applied automatically
+ * as the pricing currency for tours this supplier creates.
+ */
+export async function updateSupplierProfileAction(
+  _prev: { error?: string; ok?: boolean },
+  formData: FormData,
+): Promise<{ error?: string; ok?: boolean }> {
+  const session = await getSessionUser();
+  if (!session) return { error: "Not authenticated" };
+  const supplier = get<{ id: string }>("SELECT id FROM suppliers WHERE user_id = ?", session.id);
+  if (!supplier) return { error: "No supplier profile is linked to this account" };
+
+  const company_name = String(formData.get("company_name") ?? "").trim().slice(0, 150);
+  const contact_person = String(formData.get("contact_person") ?? "").trim().slice(0, 100);
+  const email = String(formData.get("email") ?? "").trim().toLowerCase().slice(0, 200);
+  const phone = String(formData.get("phone") ?? "").trim().slice(0, 40);
+  const address = String(formData.get("address") ?? "").trim().slice(0, 300);
+  const preferred_currency = String(formData.get("preferred_currency") ?? "USD").toUpperCase();
+
+  if (company_name.length < 2) return { error: "Company name is required" };
+  if (contact_person.length < 2) return { error: "Contact person is required" };
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: "A valid contact email is required" };
+  if (!SUPPORTED_CURRENCIES.includes(preferred_currency)) return { error: "Unsupported currency" };
+
+  run(
+    `UPDATE suppliers SET company_name = ?, contact_person = ?, email = ?, phone = ?, address = ?,
+      preferred_currency = ?, updated_at = ? WHERE id = ?`,
+    company_name, contact_person, email, phone || null, address || null,
+    preferred_currency, nowIso(), supplier.id,
+  );
+  revalidatePath("/supplier/settings");
+  revalidatePath("/supplier");
+  return { ok: true };
+}
+
 export async function changePasswordAction(_prev: { error?: string; ok?: boolean }, formData: FormData): Promise<{ error?: string; ok?: boolean }> {
   const session = await getSessionUser();
   if (!session) return { error: "Not authenticated" };
@@ -282,13 +319,23 @@ export async function createQuoteAction(formData: FormData): Promise<{ ok?: bool
   const notes = String(formData.get("notes") ?? "").slice(0, 2000);
   if (!tourId || !/^\d{4}-\d{2}-\d{2}$/.test(travelDate)) return { error: "Tour and travel date are required" };
 
-  const tour = get<{ id: string; base_price: number; agent_price: number | null; sale_price: number | null }>(
-    "SELECT id, base_price, agent_price, sale_price FROM tours WHERE id = ? AND status = 'PUBLISHED'", tourId,
+  const tour = get<{
+    id: string; base_price: number; agent_price: number | null; sale_price: number | null; agent_discount_pct: number | null;
+  }>(
+    "SELECT id, base_price, agent_price, sale_price, agent_discount_pct FROM tours WHERE id = ? AND status = 'PUBLISHED'", tourId,
   );
   if (!tour) return { error: "Tour not found" };
 
-  const gross = (tour.sale_price ?? tour.base_price) * pax;
-  const net = tour.agent_price ? tour.agent_price * pax : gross * 0.85;
+  const unit = tour.sale_price && tour.sale_price > 0 ? tour.sale_price : tour.base_price;
+  const gross = unit * pax;
+  // Explicit agent net price wins; otherwise the supplier's discount percentage;
+  // with neither set the supplier accepts no agent/member discount (net = retail).
+  const net =
+    tour.agent_price != null
+      ? tour.agent_price * pax
+      : tour.agent_discount_pct != null && tour.agent_discount_pct > 0
+        ? Math.round(gross * (1 - tour.agent_discount_pct / 100) * 100) / 100
+        : gross;
   const reference = `QT-${new Date().getFullYear()}-${String(all("SELECT id FROM quotes").length + 1).padStart(4, "0")}`;
 
   run(

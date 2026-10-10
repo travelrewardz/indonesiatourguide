@@ -62,12 +62,23 @@ export const reviewSchema = z.object({
 
 const faqItem = z.object({ q: z.string().trim().min(2).max(300), a: z.string().trim().min(2).max(2000) });
 
+const tierSchema = z.object({
+  label: z.string().trim().max(60).optional().or(z.literal("")),
+  min_pax: z.coerce.number().int().min(1).max(500),
+  max_pax: z.coerce.number().int().min(1).max(500).nullable().optional(),
+  price: z.coerce.number().min(0).max(1_000_000),
+});
+
 export const tourSchema = z.object({
   title: z.string().trim().min(3).max(200),
   slug: z.string().trim().max(200).optional().or(z.literal("")),
   short_description: z.string().trim().max(600).optional().or(z.literal("")),
   full_description: z.string().trim().max(30000).optional().or(z.literal("")),
   destination_slug: z.string().trim().max(200).optional().or(z.literal("")),
+  // Multi-attribute arrays — omitted on partial updates so existing values survive.
+  destinations: z.array(z.string().trim().max(200)).max(10).optional(),
+  regions: z.array(z.string().trim().max(120)).max(10).optional(),
+  categories: z.array(z.string().trim().max(60)).max(10).optional(),
   region: z.string().trim().max(120).optional().or(z.literal("")),
   duration_days: z.coerce.number().int().min(1).max(60),
   duration_text: z.string().trim().max(80).optional().or(z.literal("")),
@@ -77,9 +88,17 @@ export const tourSchema = z.object({
   max_pax: z.coerce.number().int().min(1).max(500),
   base_price: z.coerce.number().min(0).max(1_000_000),
   sale_price: z.coerce.number().min(0).max(1_000_000).nullable().optional(),
+  currency: z.string().trim().regex(/^[A-Za-z]{3}$/).optional().or(z.literal("")),
   agent_price: z.coerce.number().min(0).max(1_000_000).nullable().optional(),
-  status: z.enum(["DRAFT", "PUBLISHED", "UNPUBLISHED"]).default("DRAFT"),
-  featured: z.coerce.boolean().default(false),
+  // NULL/omitted = supplier accepts no agent/member discount; a percentage
+  // derives the agent net price from the tour's public unit price.
+  agent_discount_pct: z.coerce.number().min(0).max(100).nullable().optional(),
+  // Tour-level pax tier ladder — omitted keeps existing rows, [] clears them.
+  tiers: z.array(tierSchema).max(10).optional(),
+  // Omitted fields keep their stored values (partial updates are PATCH-like);
+  // saveTour applies defaults when creating.
+  status: z.enum(["DRAFT", "PUBLISHED", "UNPUBLISHED"]).optional(),
+  featured: z.coerce.boolean().optional(),
   pickup_info: z.string().trim().max(2000).optional().or(z.literal("")),
   map_lat: z.coerce.number().min(-90).max(90).nullable().optional(),
   map_lng: z.coerce.number().min(-180).max(180).nullable().optional(),
@@ -87,22 +106,23 @@ export const tourSchema = z.object({
   seo_description: z.string().trim().max(400).optional().or(z.literal("")),
   seo_keywords: z.string().trim().max(400).optional().or(z.literal("")),
   supplier_id: z.string().trim().max(60).optional().or(z.literal("")),
-  highlights: z.array(z.string().trim().max(300)).max(30).default([]),
-  includes: z.array(z.string().trim().max(300)).max(40).default([]),
-  excludes: z.array(z.string().trim().max(300)).max(40).default([]),
-  faqs: z.array(faqItem).max(30).default([]),
+  highlights: z.array(z.string().trim().max(300)).max(30).optional(),
+  includes: z.array(z.string().trim().max(300)).max(40).optional(),
+  excludes: z.array(z.string().trim().max(300)).max(40).optional(),
+  faqs: z.array(faqItem).max(30).optional(),
   images: z.array(z.object({
     image_url: z.string().trim().url().max(1000),
     alt_text: z.string().trim().max(200).optional().or(z.literal("")),
-  })).max(12).default([]),
+  })).max(12).optional(),
   itinerary: z.array(z.object({
     day: z.coerce.number().int().min(1).max(60),
     time: z.string().trim().max(40).optional().or(z.literal("")),
     title: z.string().trim().min(2).max(200),
     description: z.string().trim().max(2000).optional().or(z.literal("")),
-  })).max(60).default([]),
+  })).max(60).optional(),
   options: z.array(z.object({
     name: z.string().trim().min(1).max(150),
+    description: z.string().trim().max(2000).optional().or(z.literal("")),
     price: z.coerce.number().min(0).max(1_000_000),
     min_pax: z.coerce.number().int().min(1).max(100),
     max_pax: z.coerce.number().int().min(1).max(500),
@@ -110,5 +130,6 @@ export const tourSchema = z.object({
     inclusions: z.array(z.string().trim().max(300)).max(30).default([]),
     exclusions: z.array(z.string().trim().max(300)).max(30).default([]),
     is_available: z.coerce.boolean().default(true),
-  })).max(10).default([]),
+    tiers: z.array(tierSchema).max(10).default([]),
+  })).max(10).optional(),
 });

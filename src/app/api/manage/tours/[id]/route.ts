@@ -30,9 +30,13 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
     "SELECT day, time, title, description FROM tour_itinerary WHERE tour_id = ? ORDER BY sort_order", id,
   );
   const options = all<{
-    id: string; name: string; price: number; min_pax: number; max_pax: number;
+    id: string; name: string; description: string | null; price: number; min_pax: number; max_pax: number;
     duration_text: string | null; inclusions: string; exclusions: string; is_available: number;
   }>("SELECT * FROM tour_options WHERE tour_id = ? ORDER BY sort_order", id);
+  const tiers = all<{ option_id: string; label: string | null; min_pax: number; max_pax: number | null; price: number }>(
+    "SELECT option_id, label, min_pax, max_pax, price FROM tour_price_tiers WHERE tour_id = ? ORDER BY option_id, min_pax",
+    id,
+  );
 
   const parse = <T,>(raw: string, fallback: T): T => {
     try {
@@ -49,6 +53,9 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
     tour: {
       ...tour,
       destination_slug: destination?.slug ?? "",
+      destinations: parse<string[]>(tour.destinations, destination?.slug ? [destination.slug] : []),
+      regions: parse<string[]>(tour.regions, tour.region ? [tour.region] : []),
+      categories: parse<string[]>(tour.categories, tour.category ? [tour.category] : []),
       highlights: parse<string[]>(tour.highlights, []),
       includes: parse<string[]>(tour.includes, []),
       excludes: parse<string[]>(tour.excludes, []),
@@ -57,11 +64,13 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
     },
     images,
     itinerary,
+    tiers: tiers.filter((t) => t.option_id === ""),
     options: options.map((o) => ({
       ...o,
       is_available: !!o.is_available,
       inclusions: parse<string[]>(o.inclusions, []),
       exclusions: parse<string[]>(o.exclusions, []),
+      tiers: tiers.filter((t) => t.option_id === o.id),
     })),
   });
 }

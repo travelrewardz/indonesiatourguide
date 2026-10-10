@@ -6,7 +6,7 @@ import BookingPanel from "@/components/BookingPanel";
 import JsonLd from "@/components/JsonLd";
 import TourCard from "@/components/TourCard";
 import { all, get } from "@/lib/db";
-import { getOptions, getTourBySlug } from "@/lib/pricing";
+import { getOptions, getTourBySlug, lowestTierPrice, tourTiers } from "@/lib/pricing";
 import { listAvailability } from "@/lib/availability";
 import { destinationBySlug, similarTours, tourImages, tourReviews, setting } from "@/lib/queries";
 import { getDisplayCurrency, getLocale } from "@/lib/prefs";
@@ -68,7 +68,14 @@ export default async function TourDetailPage({ params }: Ctx) {
 
   const listPrice = tour.base_price;
   const salePrice = tour.sale_price && tour.sale_price > 0 ? tour.sale_price : null;
-  const fromPrice = salePrice ?? (options.length ? Math.min(...options.map((o) => o.price)) : tour.base_price);
+  const lowestTier = lowestTierPrice(tour.id);
+  const tierLadder = tourTiers(tour.id);
+  const fromPrice = Math.min(
+    lowestTier ?? Infinity,
+    salePrice ?? Infinity,
+    options.length ? Math.min(...options.map((o) => o.price)) : Infinity,
+    tour.base_price,
+  );
 
   const waMessage = `Hello Indonesia Tour Guide, I am interested in the ${tour.title} for ${Math.max(1, tour.min_pax)} people on ${fmtDate(today)}.`;
   const heroImage = images[0]?.image_url ?? null;
@@ -242,12 +249,12 @@ export default async function TourDetailPage({ params }: Ctx) {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {(options.length ? options : [{ id: "", name: "Standard tour", price: fromPrice, min_pax: tour.min_pax, max_pax: tour.max_pax, duration_text: tour.duration_text, inclusions: "[]", exclusions: "[]", is_available: 1, sort_order: 0, tour_id: tour.id }]).map((o) => (
+                    {(options.length ? options : [{ id: "", name: "Standard tour", price: fromPrice, min_pax: tour.min_pax, max_pax: tour.max_pax, duration_text: tour.duration_text, inclusions: "[]", exclusions: "[]", is_available: 1, sort_order: 0, tour_id: tour.id, description: null }]).map((o) => (
                       <tr key={o.id || "std"}>
                         <td className="px-4 py-3 font-medium">{o.name}</td>
                         <td className="px-4 py-3">
                           {displayMoney(o.price, currency)}
-                          {salePrice && o.price === fromPrice && (
+                          {o.price < listPrice && (
                             <span className="ml-2 text-xs text-gray-400 line-through">{displayMoney(listPrice, currency)}</span>
                           )}
                         </td>
@@ -258,8 +265,21 @@ export default async function TourDetailPage({ params }: Ctx) {
                   </tbody>
                 </table>
               </div>
+              {tierLadder.length > 0 && (
+                <div className="mt-4 rounded-2xl border border-brand-100 bg-brand-50/40 p-4">
+                  <div className="text-sm font-semibold text-ink">Group pricing — the more people, the lower the price</div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {tierLadder.map((tier) => (
+                      <span key={`${tier.option_id}-${tier.min_pax}-${tier.max_pax ?? "x"}`} className="rounded-full border border-brand-200 bg-white px-3 py-1 text-sm text-brand-700">
+                        {tier.label ?? `${tier.min_pax}–${tier.max_pax ?? "+"} pax`}: <b>{displayMoney(tier.price, currency)}</b>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
               <p className="mt-2 text-xs text-gray-500">
-                All prices are charged in USD by the server after availability is confirmed. {displayMoney(fromPrice, currency)} from per person.
+                All prices are charged in USD by the server after availability is confirmed. {displayMoney(fromPrice, currency)} from per person
+                {fromPrice < listPrice ? ` (${displayMoney(listPrice, currency)} regular)` : ""}.
               </p>
             </section>
 

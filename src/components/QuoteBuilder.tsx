@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createQuoteAction } from "@/lib/actions";
 
-export default function QuoteBuilder({ tours }: { tours: { id: string; title: string; base_price: number; agent_price: number | null; sale_price: number | null }[] }) {
+export default function QuoteBuilder({ tours }: { tours: { id: string; title: string; base_price: number; agent_price: number | null; sale_price: number | null; agent_discount_pct: number | null }[] }) {
   const router = useRouter();
   const [status, setStatus] = useState<"idle" | "busy" | "done" | "error">("idle");
   const [message, setMessage] = useState("");
@@ -43,11 +43,19 @@ export default function QuoteBuilder({ tours }: { tours: { id: string; title: st
           <label className="label" htmlFor="qb-tour">Tour</label>
           <select id="qb-tour" name="tourId" required className="input">
             <option value="">Select a tour…</option>
-            {tours.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.title} — net ${t.agent_price ?? Math.round((t.sale_price ?? t.base_price) * 0.85)}/pp
-              </option>
-            ))}
+            {tours.map((t) => {
+              const retail = t.sale_price ?? t.base_price;
+              const net =
+                t.agent_price ??
+                (t.agent_discount_pct != null && t.agent_discount_pct > 0
+                  ? Math.round(retail * (1 - t.agent_discount_pct / 100))
+                  : retail);
+              return (
+                <option key={t.id} value={t.id}>
+                  {t.title} — net ${net}/pp
+                </option>
+              );
+            })}
           </select>
         </div>
         <div>

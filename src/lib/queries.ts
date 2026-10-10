@@ -8,12 +8,14 @@ export type TourCardData = Tour & {
   destination_slug: string | null;
   image_url: string | null;
   option_from: number | null;
+  tier_from: number | null;
 };
 
 const CARD_SELECT = `
   SELECT t.*, d.name AS destination_name, d.slug AS destination_slug,
          (SELECT image_url FROM tour_images i WHERE i.tour_id = t.id ORDER BY sort_order LIMIT 1) AS image_url,
-         (SELECT MIN(price) FROM tour_options o WHERE o.tour_id = t.id AND o.is_available = 1) AS option_from
+         (SELECT MIN(price) FROM tour_options o WHERE o.tour_id = t.id AND o.is_available = 1) AS option_from,
+         (SELECT MIN(price) FROM tour_price_tiers pt WHERE pt.tour_id = t.id) AS tier_from
   FROM tours t
   LEFT JOIN destinations d ON d.id = t.destination_id
 `;
@@ -30,8 +32,10 @@ export function latestTours(limit = 6): TourCardData[] {
 
 export function toursByDestination(destinationSlug: string, limit = 12, excludeTourId?: string): TourCardData[] {
   return all<TourCardData>(
-    `${CARD_SELECT} WHERE t.status = 'PUBLISHED' AND d.slug = ? ${excludeTourId ? "AND t.id != ?" : ""} ORDER BY t.featured DESC, t.rating DESC LIMIT ?`,
-    ...(excludeTourId ? [destinationSlug, excludeTourId, limit] : [destinationSlug, limit]),
+    `${CARD_SELECT} WHERE t.status = 'PUBLISHED' AND (d.slug = ? OR t.destinations LIKE ?) ${excludeTourId ? "AND t.id != ?" : ""} ORDER BY t.featured DESC, t.rating DESC LIMIT ?`,
+    ...(excludeTourId
+      ? [destinationSlug, `%"${destinationSlug}"%`, excludeTourId, limit]
+      : [destinationSlug, `%"${destinationSlug}"%`, limit]),
   );
 }
 
@@ -89,13 +93,13 @@ export function searchTours(opts: {
   const where: string[] = ["t.status = 'PUBLISHED'"];
   const params: (string | number)[] = [];
   if (opts.q) {
-    where.push("(t.title LIKE ? OR t.short_description LIKE ? OR t.region LIKE ? OR d.name LIKE ?)");
+    where.push("(t.title LIKE ? OR t.short_description LIKE ? OR t.region LIKE ? OR t.regions LIKE ? OR d.name LIKE ?)");
     const like = `%${opts.q}%`;
-    params.push(like, like, like, like);
+    params.push(like, like, like, like, like);
   }
-  if (opts.destination) { where.push("d.slug = ?"); params.push(opts.destination); }
-  if (opts.category) { where.push("t.category = ?"); params.push(opts.category); }
-  if (opts.region) { where.push("t.region LIKE ?"); params.push(`%${opts.region}%`); }
+  if (opts.destination) { where.push("(d.slug = ? OR t.destinations LIKE ?)"); params.push(opts.destination, `%"${opts.destination}"%`); }
+  if (opts.category) { where.push("(t.category = ? OR t.categories LIKE ?)"); params.push(opts.category, `%"${opts.category}"%`); }
+  if (opts.region) { where.push("(t.region LIKE ? OR t.regions LIKE ?)"); const like = `%${opts.region}%`; params.push(like, like); }
   if (opts.minDays) { where.push("t.duration_days >= ?"); params.push(opts.minDays); }
   if (opts.maxDays) { where.push("t.duration_days <= ?"); params.push(opts.maxDays); }
   if (opts.minPrice) { where.push("COALESCE(t.sale_price, t.base_price) >= ?"); params.push(opts.minPrice); }
@@ -122,9 +126,13 @@ export function searchTours(opts: {
 }
 
 export function tourCategories(): string[] {
-  return all<{ category: string }>(
+  const primary = all<{ category: string }>(
     "SELECT DISTINCT category FROM tours WHERE status = 'PUBLISHED' AND category IS NOT NULL ORDER BY category",
   ).map((r) => r.category);
+  const extra = all<{ value: string }>(
+    "SELECT DISTINCT je.value FROM tours t, json_each(t.categories) je WHERE t.status = 'PUBLISHED' ORDER BY je.value",
+  ).map((r) => r.value);
+  return Array.from(new Set([...primary, ...extra])).sort();
 }
 
 export function tourOptionsWithBase(tourId: string): (TourOption & { is_default: number })[] {

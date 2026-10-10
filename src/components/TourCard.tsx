@@ -13,9 +13,12 @@ export default function TourCard({
 }) {
   const from = (tour.sale_price && tour.sale_price > 0 ? tour.sale_price : tour.base_price) as number;
   const optionFrom = tour.option_from != null && tour.option_from > 0 ? tour.option_from : null;
+  const tierFrom = tour.tier_from != null && tour.tier_from > 0 ? tour.tier_from : null;
   const listPrice = tour.base_price;
-  const price = Math.min(from, optionFrom ?? from);
-  const hasDiscount = tour.sale_price != null && tour.sale_price > 0 && tour.sale_price < tour.base_price;
+  // Card shows the lowest available price (tier / option / sale); the base
+  // price is struck through whenever that lowest price is below it.
+  const price = Math.min(from, optionFrom ?? from, tierFrom ?? from);
+  const hasDiscount = tour.base_price > 0 && price < tour.base_price;
   const soldOut = (tour.review_count ?? 0) >= 0 && false; // availability is resolved on the detail page
 
   return (
@@ -41,7 +44,7 @@ export default function TourCard({
         </span>
         {hasDiscount && (
           <span className="absolute right-3 top-3 rounded-full bg-accent px-2.5 py-1 text-xs font-bold text-white">
-            {Math.round((1 - (tour.sale_price as number) / tour.base_price) * 100)}% off
+            {Math.round((1 - price / tour.base_price) * 100)}% off
           </span>
         )}
         {badge && (

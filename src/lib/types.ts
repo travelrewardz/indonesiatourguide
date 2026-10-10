@@ -79,6 +79,9 @@ export type Tour = {
   short_description: string | null;
   full_description: string | null;
   destination_id: string | null;
+  destinations: string; // JSON array of destination slugs (first = primary)
+  regions: string; // JSON array of region names
+  categories: string; // JSON array of category names
   region: string | null;
   duration_days: number;
   duration_text: string | null;
@@ -90,6 +93,7 @@ export type Tour = {
   sale_price: number | null;
   currency: string;
   agent_price: number | null;
+  agent_discount_pct: number | null; // NULL = agents/members pay retail
   supplier_id: string | null;
   rating: number;
   review_count: number;
@@ -127,10 +131,22 @@ export type TourItineraryItem = {
   sort_order: number;
 };
 
+export type TourPriceTier = {
+  id: string;
+  tour_id: string;
+  option_id: string; // '' = tour-level ladder
+  label: string | null;
+  min_pax: number;
+  max_pax: number | null; // null = no upper limit
+  price: number;
+  sort_order: number;
+};
+
 export type TourOption = {
   id: string;
   tour_id: string;
   name: string;
+  description: string | null;
   price: number;
   min_pax: number;
   max_pax: number;

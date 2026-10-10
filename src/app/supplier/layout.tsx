@@ -27,6 +27,7 @@ export default async function SupplierLayout({ children }: { children: React.Rea
               { href: "/supplier/tours", label: "My tours" },
               { href: "/supplier/bookings", label: "Bookings" },
               { href: "/supplier/availability", label: "Availability" },
+              { href: "/supplier/settings", label: "Settings" },
             ].map((item) => (
               <Link key={item.href} href={item.href}
                 className="rounded-full bg-white/10 px-4 py-2 text-sm font-medium hover:bg-white/20">

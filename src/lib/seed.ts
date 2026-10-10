@@ -145,7 +145,11 @@ export function seedDatabase(db: Sql): void {
     tourIdsBySlug[t.slug] = tourId;
     insert(db, "tours", {
       id: tourId, title: t.title, slug: t.slug, short_description: t.short, full_description: t.full,
-      destination_id: destIds[t.destination] ?? null, region: t.region, duration_days: t.days,
+      destination_id: destIds[t.destination] ?? null,
+      destinations: JSON.stringify(t.destination ? [t.destination] : []),
+      regions: JSON.stringify(t.region ? [t.region] : []),
+      categories: JSON.stringify(t.category ? [t.category] : []),
+      region: t.region, duration_days: t.days,
       duration_text: t.durationText, category: t.category, difficulty: t.difficulty,
       min_pax: t.minPax, max_pax: t.maxPax, base_price: t.basePrice, sale_price: t.salePrice ?? null,
       currency: "USD", agent_price: t.agentPrice ?? null, supplier_id: supplierIds[t.supplier] ?? null,
