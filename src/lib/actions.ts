@@ -483,7 +483,20 @@ export async function saveDestinationAction(formData: FormData): Promise<{ error
   const data = {
     name,
     slug,
-    region: String(formData.get("region") ?? "").slice(0, 80) || null,
+    // Multi-select dropdown sends several `regions` values; a single custom
+    // region may also be typed into `region_custom`. Legacy `region` field is
+    // still accepted as a fallback. The first region is mirrored into the
+    // legacy single-value column for backward compatibility.
+    region: null as string | null, // set below from regions[0]
+    regions: Array.from(
+      new Set(
+        [
+          ...formData.getAll("regions").map((v) => String(v).trim().slice(0, 80)),
+          ...String(formData.get("region_custom") ?? "").split(",").map((v) => v.trim().slice(0, 80)),
+          String(formData.get("region") ?? "").trim().slice(0, 80), // legacy single-value input
+        ].filter(Boolean),
+      ),
+    ).slice(0, 6),
     tagline: String(formData.get("tagline") ?? "").slice(0, 120) || null,
     description: String(formData.get("description") ?? "").slice(0, 8000) || null,
     hero_image: String(formData.get("hero_image") ?? "").slice(0, 1000) || null,
@@ -493,14 +506,15 @@ export async function saveDestinationAction(formData: FormData): Promise<{ error
     seo_keywords: String(formData.get("seo_keywords") ?? "").slice(0, 400) || null,
     featured: formData.get("featured") === "on" ? 1 : 0,
   };
+  data.region = data.regions[0] ?? null;
 
   if (id) {
     const existing = get<{ id: string }>("SELECT id FROM destinations WHERE id = ?", id);
     if (!existing) return { error: "Destination not found" };
     run(
-      `UPDATE destinations SET name = ?, slug = ?, region = ?, tagline = ?, description = ?, hero_image = ?, gallery = ?,
+      `UPDATE destinations SET name = ?, slug = ?, region = ?, regions = ?, tagline = ?, description = ?, hero_image = ?, gallery = ?,
         seo_title = ?, seo_description = ?, seo_keywords = ?, featured = ?, updated_at = ? WHERE id = ?`,
-      data.name, data.slug, data.region, data.tagline, data.description, data.hero_image, JSON.stringify(data.gallery),
+      data.name, data.slug, data.region, JSON.stringify(data.regions), data.tagline, data.description, data.hero_image, JSON.stringify(data.gallery),
       data.seo_title, data.seo_description, data.seo_keywords, data.featured, nowIso(), id,
     );
   } else {
@@ -508,10 +522,10 @@ export async function saveDestinationAction(formData: FormData): Promise<{ error
     if (clash) return { error: "A destination with this slug already exists" };
     const nextOrder = (get<{ m: number | null }>("SELECT MAX(sort_order) AS m FROM destinations")?.m ?? 0) + 1;
     run(
-      `INSERT INTO destinations (id, name, slug, region, tagline, description, hero_image, gallery, seo_title,
+      `INSERT INTO destinations (id, name, slug, region, regions, tagline, description, hero_image, gallery, seo_title,
         seo_description, seo_keywords, featured, sort_order, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      newId("dst"), data.name, data.slug, data.region, data.tagline, data.description, data.hero_image,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      newId("dst"), data.name, data.slug, data.region, JSON.stringify(data.regions), data.tagline, data.description, data.hero_image,
       JSON.stringify(data.gallery), data.seo_title, data.seo_description, data.seo_keywords, data.featured,
       nextOrder, nowIso(), nowIso(),
     );

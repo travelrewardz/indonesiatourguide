@@ -381,4 +381,13 @@ export const MIGRATIONS: string[] = [
   );
   CREATE INDEX idx_price_tiers_tour ON tour_price_tiers(tour_id, option_id, min_pax);
   `,
+
+  // --------------------------------------------- v3 multi-region destinations
+  // A destination can belong to several regions (admin multi-select dropdown).
+  // The legacy single-value `region` column is kept as the first region for
+  // backward compatibility with older reads.
+  `
+  ALTER TABLE destinations ADD COLUMN regions TEXT NOT NULL DEFAULT '[]'; -- JSON array of region names
+  UPDATE destinations SET regions = json_array(region) WHERE region IS NOT NULL AND region <> '' AND regions = '[]';
+ `,
 ];

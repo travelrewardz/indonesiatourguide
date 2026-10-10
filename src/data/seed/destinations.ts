@@ -5,6 +5,7 @@ export type SeedDestination = {
   name: string;
   slug: string;
   region: string;
+  regions?: string[]; // multi-region membership (falls back to [region])
   tagline: string;
   description: string;
   hero: string;
@@ -22,6 +23,7 @@ export const SEED_DESTINATIONS: SeedDestination[] = [
     name: "Bali",
     slug: "bali",
     region: "Lesser Sunda Islands",
+    regions: ["Lesser Sunda Islands", "Bali"],
     tagline: "Island of the Gods",
     description:
       "Bali is Indonesia's most beloved island — a landscape of emerald rice terraces, cliff-top sea temples, volcano interiors and living Hindu culture. From the artistic heart of Ubud to the beach towns of Seminyak and Sanur, Bali rewards first-time visitors and seasoned travellers alike with temples, ceremonies, craft villages and world-class diving.",
@@ -55,6 +57,7 @@ export const SEED_DESTINATIONS: SeedDestination[] = [
     key: "yogyakarta",
     name: "Yogyakarta",
     slug: "yogyakarta",
+    regions: ["Central Java", "Java"],
     region: "Central Java",
     tagline: "Cultural Capital",
     description:
@@ -72,6 +75,7 @@ export const SEED_DESTINATIONS: SeedDestination[] = [
     key: "bromo",
     name: "Bromo",
     slug: "bromo",
+    regions: ["East Java", "Java"],
     region: "East Java",
     tagline: "Sunrise Over the Tengger Caldera",
     description:
@@ -219,6 +223,7 @@ export const SEED_DESTINATIONS: SeedDestination[] = [
     key: "komodo",
     name: "Komodo",
     slug: "komodo",
+    regions: ["Flores", "Lesser Sunda Islands", "East Nusa Tenggara"],
     region: "East Nusa Tenggara",
     tagline: "Land of the Dragons",
     description:
@@ -235,6 +240,7 @@ export const SEED_DESTINATIONS: SeedDestination[] = [
     key: "lombok",
     name: "Lombok",
     slug: "lombok",
+    regions: ["West Nusa Tenggara", "Lesser Sunda Islands"],
     region: "West Nusa Tenggara",
     tagline: "The Untouched Sibling",
     description:
@@ -283,6 +289,7 @@ export const SEED_DESTINATIONS: SeedDestination[] = [
     key: "raja-ampat",
     name: "Raja Ampat",
     slug: "raja-ampat",
+    regions: ["West Papua", "Papua"],
     region: "West Papua",
     tagline: "The Last Paradise",
     description:

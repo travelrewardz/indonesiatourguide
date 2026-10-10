@@ -56,7 +56,8 @@ export type Destination = {
   id: string;
   name: string;
   slug: string;
-  region: string | null;
+  region: string | null; // legacy single region (first of regions)
+  regions: string;      // JSON array of region names
   tagline: string | null;
   description: string | null;
   hero_image: string | null;

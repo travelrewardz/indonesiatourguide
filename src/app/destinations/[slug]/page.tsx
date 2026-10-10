@@ -6,6 +6,7 @@ import TourCard from "@/components/TourCard";
 import JsonLd from "@/components/JsonLd";
 import { destinationBySlug, toursByDestination, setting } from "@/lib/queries";
 import { publishedDestinations } from "@/lib/queries";
+import { parseJsonArray } from "@/lib/json";
 import { getDisplayCurrency } from "@/lib/prefs";
 import { buildMetadata, breadcrumbLd } from "@/lib/seo";
 
@@ -53,7 +54,9 @@ export default async function DestinationPage({ params }: Ctx) {
           </nav>
           <div className="text-xs uppercase tracking-[0.25em] text-accent">{dest.tagline}</div>
           <h1 className="font-display mt-1 text-4xl font-medium sm:text-5xl">{dest.name}</h1>
-          <p className="mt-1 text-white/75">{dest.region}</p>
+          <p className="mt-1 text-white/75">
+            {(parseJsonArray<string>(dest.regions ?? "[]").length ? parseJsonArray<string>(dest.regions) : [dest.region]).filter(Boolean).join(" · ")}
+          </p>
         </div>
       </section>
 

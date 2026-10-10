@@ -131,7 +131,8 @@ export function seedDatabase(db: Sql): void {
   for (const d of SEED_DESTINATIONS) {
     destIds[d.slug] = id("dst");
     insert(db, "destinations", {
-      id: destIds[d.slug], name: d.name, slug: d.slug, region: d.region, tagline: d.tagline,
+      id: destIds[d.slug], name: d.name, slug: d.slug, region: d.region,
+      regions: JSON.stringify(d.regions ?? (d.region ? [d.region] : [])), tagline: d.tagline,
       description: d.description, hero_image: d.hero, gallery: JSON.stringify(d.gallery),
       seo_title: d.seoTitle, seo_description: d.seoDescription, seo_keywords: d.seoKeywords,
       featured: d.featured ? 1 : 0, sort_order: d.sortOrder, created_at: now, updated_at: now,
