@@ -1,5 +1,14 @@
 import { z } from "zod";
 
+/** An image source: an absolute http(s) URL or a file uploaded via POST /api/uploads. */
+const imageUrl = z
+  .string()
+  .trim()
+  .max(1000)
+  .refine((v) => /^https?:\/\/\S+$/i.test(v) || /^\/uploads\/[\w.-]+$/.test(v), {
+    message: "Must be an https:// URL or an uploaded /uploads/ image",
+  });
+
 export const registerSchema = z.object({
   name: z.string().trim().min(2).max(100),
   email: z.string().trim().toLowerCase().email().max(200),
@@ -111,7 +120,7 @@ export const tourSchema = z.object({
   excludes: z.array(z.string().trim().max(300)).max(40).optional(),
   faqs: z.array(faqItem).max(30).optional(),
   images: z.array(z.object({
-    image_url: z.string().trim().url().max(1000),
+    image_url: imageUrl,
     alt_text: z.string().trim().max(200).optional().or(z.literal("")),
   })).max(12).optional(),
   itinerary: z.array(z.object({

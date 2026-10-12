@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { all, get } from "@/lib/db";
 import { saveBlogPostFormAction, deleteBlogPostAction } from "@/lib/actions";
 import ConfirmSubmit from "@/components/ConfirmSubmit";
+import ImageUploadField from "@/components/ImageUploadField";
 import type { BlogPost } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -61,8 +62,8 @@ export default async function AdminBlogEditPage({ params }: { params: Promise<{ 
             </select>
           </div>
           <div className="sm:col-span-2">
-            <label className="label">Cover image URL</label>
-            <input name="cover_image" defaultValue={post.cover_image ?? ""} className="input" placeholder="https://…" />
+            <label className="label">Cover image (upload from device or paste a URL)</label>
+            <ImageUploadField name="cover_image" defaultValue={post.cover_image ?? ""} placeholder="https://…" />
           </div>
           <div className="sm:col-span-2">
             <label className="label">Excerpt</label>

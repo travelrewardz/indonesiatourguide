@@ -59,6 +59,7 @@ Four role-gated areas, one session cookie:
 | `GET /api/bookings/{number}` | owner/agent/supplier/admin only; 404 otherwise (no enumeration) |
 | `POST /api/enquiries` | public enquiries / RFQ |
 | `GET/PUT/DELETE /api/manage/tours/{id}` | owner-supplier or admin |
+| `POST /api/uploads` | staff image upload from the device (admin/supplier, 5 MB, JPEG/PNG/WebP/GIF/AVIF) → `/uploads/{file}` |
 | `GET /api/notifications`, `POST` | list + mark read |
 | `POST /api/payments/webhook/{provider}` | HMAC-signed, verified before any money state change |
 | `GET /api/reports` | admin KPIs |
@@ -146,6 +147,7 @@ BASE=http://localhost:3000 WEBHOOK_SECRET=test-secret-123 bash scripts/e2e.sh
 ## Notes
 
 - Photos are hotlinked from Wikimedia Commons (`thumb.wikimedia.org` / `upload.wikimedia.org`), allowlisted in `next.config.ts`; `tools/harvest-images.mjs` + `tools/curate-images.mjs` maintain the image pool. Replace with licensed DMC photography for production.
+- Editors can also upload photos straight from their device: `POST /api/uploads` stores the file in `data/uploads/` and `GET /uploads/{file}` streams it (public/, which Next serves from a manifest fixed at boot, is not used for runtime uploads). Uploaded files are git-ignored with the rest of `data/`.
 - Booking numbers use the format `ITG-YYYYMMDD-NNNNN`.
 - Legacy URLs redirect for SEO: `/tours-package/:slug` → `/tours/:slug`, `/destination/:slug` → `/destinations/:slug`, `/for-agencies` and `/partner-portal` → `/agents`, `/guides` → `/blog`.
 - The `/pay/sandbox/{id}` page simulates a provider redirect and fires a real signed webhook — it exercises the same path a live gateway would.

@@ -1,6 +1,7 @@
 import { all } from "@/lib/db";
 import { saveDestinationFormAction, deleteDestinationAction } from "@/lib/actions";
 import ConfirmSubmit from "@/components/ConfirmSubmit";
+import ImageUploadField from "@/components/ImageUploadField";
 import { parseJsonArray } from "@/lib/json";
 
 export const dynamic = "force-dynamic";
@@ -30,12 +31,20 @@ function DestinationForm({ d }: { d?: { id: string; name: string; slug: string; 
         <textarea name="description" rows={5} defaultValue={d?.description ?? ""} className="input" />
       </div>
       <div className="sm:col-span-2">
-        <label className="label">Hero image URL</label>
-        <input name="hero_image" defaultValue={d?.hero_image ?? ""} className="input" placeholder="https://…" />
+        <label className="label">Hero image (upload from device or paste a URL)</label>
+        <ImageUploadField name="hero_image" defaultValue={d?.hero_image ?? ""} placeholder="https://…" />
       </div>
       <div className="sm:col-span-2">
         <label className="label">Gallery URLs <span className="font-normal text-gray-400">(one per line)</span></label>
-        <textarea name="gallery" rows={3} defaultValue={parseJsonArray<string>(d?.gallery ?? "[]").join("\n")} className="input font-mono text-xs" />
+        <ImageUploadField
+          name="gallery"
+          multiline
+          append
+          rows={3}
+          defaultValue={parseJsonArray<string>(d?.gallery ?? "[]").join("\n")}
+          className="input font-mono text-xs"
+          placeholder={"https://…\nhttps://…"}
+        />
       </div>
       <div>
         <label className="label">SEO title</label>

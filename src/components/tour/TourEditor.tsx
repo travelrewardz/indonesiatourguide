@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { cx } from "@/lib/format";
+import ImageUploadField from "@/components/ImageUploadField";
 
 // One pax tier row. Values stay strings while editing so cleared inputs stay
 // clearable; they are coerced (and dropped when incomplete) on save.
@@ -493,12 +494,12 @@ export default function TourEditor({
               <h2 className="font-bold">Images</h2>
               <button type="button" className="btn-outline btn-sm" onClick={() => set("images", [...state.images, { image_url: "", alt_text: "" }])}>+ Add image</button>
             </div>
-            <p className="mt-1 text-xs text-gray-500">Paste image URLs (first image is the card/hero image). Use your own CDN or licensed photos.</p>
+            <p className="mt-1 text-xs text-gray-500">Upload a photo from your device or paste an image URL (first image is the card/hero image). Use your own CDN or licensed photos.</p>
             <div className="mt-4 space-y-3">
               {state.images.map((img, i) => (
                 <div key={i} className="grid gap-3 sm:grid-cols-[1fr_200px_auto]">
-                  <input className={inp} placeholder="https://…" value={img.image_url}
-                    onChange={(e) => set("images", state.images.map((x, j) => (j === i ? { ...x, image_url: e.target.value } : x)))} />
+                  <ImageUploadField className={inp} placeholder="https://…" value={img.image_url}
+                    onChange={(v) => set("images", state.images.map((x, j) => (j === i ? { ...x, image_url: v } : x)))} />
                   <input className={inp} placeholder="Alt text" value={img.alt_text}
                     onChange={(e) => set("images", state.images.map((x, j) => (j === i ? { ...x, alt_text: e.target.value } : x)))} />
                   <button type="button" className="text-sm text-red-600 hover:underline"
