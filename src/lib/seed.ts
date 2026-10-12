@@ -287,6 +287,19 @@ export function seedDatabase(db: Sql): void {
     insert(db, "notifications", { id: id("ntf"), user_id: n.user, type: n.type, title: n.title, body: n.body, link: n.link, read_at: null, created_at: dayOffset(n.days) });
   }
 
+  // ------------------------------------------------------ destination regions
+  // Curated sub-destination pool per destination (admin-managed; suppliers
+  // pick from it in the tour editor).
+  for (const d of SEED_DESTINATIONS) {
+    const names = d.regions ?? (d.region ? [d.region] : []);
+    names.forEach((name, i) => {
+      insert(db, "destination_regions", {
+        id: id("drg"), destination_id: destIds[d.slug], name,
+        slug: name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, ""),
+        status: "ACTIVE", created_by: null, created_at: now,
+      });
+    });
+  }
   // ------------------------------------------------------------- blog/CMS
   for (const p of SEED_BLOG) {
     insert(db, "blog_posts", {

@@ -2,6 +2,7 @@ import TourEditor from "@/components/tour/TourEditor";
 import { getSessionUser } from "@/lib/auth";
 import { all, get } from "@/lib/db";
 import { redirect, notFound } from "next/navigation";
+import { destinationsWithRegions } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -15,9 +16,7 @@ export default async function EditSupplierTourPage({ params }: { params: Promise
     const supplier = get<{ id: string }>("SELECT id FROM suppliers WHERE user_id = ?", user.id);
     if (!supplier || tour.supplier_id !== supplier.id) notFound();
   }
-  const destinations = all<{ slug: string; name: string; region: string | null }>(
-    "SELECT slug, name, region FROM destinations ORDER BY sort_order",
-  );
+  const destinations = destinationsWithRegions();
   const suppliers = isAdmin
     ? all<{ id: string; company_name: string }>("SELECT id, company_name FROM suppliers ORDER BY company_name")
     : undefined;

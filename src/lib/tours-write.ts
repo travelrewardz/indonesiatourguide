@@ -1,4 +1,4 @@
-import { get, run, newId, nowIso, tx } from "./db";
+import { all, get, run, newId, nowIso, tx } from "./db";
 import { slugify } from "./format";
 import { tourSchema } from "./validation";
 import type { z } from "zod";
@@ -31,7 +31,7 @@ function parseJson<T>(raw: string | null | undefined, fallback: T): T {
 /** Creates or updates a tour with images, itinerary, options and tiers (admin/supplier). */
 export async function saveTour(
   input: unknown,
-  opts: { tourId?: string; supplierId?: string | null; allowSupplierChoice?: boolean },
+  opts: { tourId?: string; supplierId?: string | null; allowSupplierChoice?: boolean; userId?: string | null },
 ): Promise<{ ok: true; id: string; slug: string } | { ok: false; error: string }> {
   const parsed = tourSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid tour data" };
@@ -125,6 +125,23 @@ export async function saveTour(
   const agentDiscountPct = d.agent_discount_pct === undefined ? existing?.agent_discount_pct ?? null : d.agent_discount_pct;
 
   const now = nowIso();
+
+  // Regions a supplier typed that are not in the destination's curated pool are
+  // queued as PENDING suggestions for admin approval (non-blocking: the tour
+  // still saves immediately with the region label it came with).
+  const knownRegions = new Map<string, Set<string>>();
+  for (const slug of finalDestinations) {
+    const dest = get<{ id: string }>("SELECT id FROM destinations WHERE slug = ?", slug);
+    if (!dest) continue;
+    knownRegions.set(
+      dest.id,
+      new Set(
+        all<{ slug: string }>(
+          "SELECT slug FROM destination_regions WHERE destination_id = ?", dest.id,
+        ).map((r) => r.slug),
+      ),
+    );
+  }
 
   return tx(() => {
     let tourId = opts.tourId ?? "";
@@ -252,6 +269,21 @@ export async function saveTour(
     if (d.tiers !== undefined) {
       run("DELETE FROM tour_price_tiers WHERE tour_id = ? AND option_id = ''", tourId);
       [...d.tiers].sort((a, b) => a.min_pax - b.min_pax).forEach((t, j) => insertTier(t, "", j));
+    }
+
+    if (knownRegions.size) {
+      for (const [destId, seen] of knownRegions) {
+        for (const name of finalRegions) {
+          const rs = slugify(name);
+          if (!rs || seen.has(rs)) continue;
+          seen.add(rs);
+          run(
+            `INSERT INTO destination_regions (id, destination_id, name, slug, status, created_by, created_at)
+             VALUES (?, ?, ?, ?, 'PENDING', ?, ?)`,
+            newId("drg"), destId, name, rs, opts.userId ?? null, now,
+          );
+        }
+      }
     }
 
     return { ok: true as const, id: tourId, slug };

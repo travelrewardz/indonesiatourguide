@@ -1,30 +1,101 @@
 import { all } from "@/lib/db";
-import { saveDestinationFormAction, deleteDestinationAction } from "@/lib/actions";
+import {
+  saveDestinationFormAction,
+  deleteDestinationAction,
+  addDestinationRegionFormAction,
+  removeDestinationRegionAction,
+  setDestinationRegionStatusFormAction,
+} from "@/lib/actions";
 import ConfirmSubmit from "@/components/ConfirmSubmit";
 import { parseJsonArray } from "@/lib/json";
-
-/** Curated Indonesian region options for the multi-select, merged with any
- *  regions already present in the database. */
-const REGION_OPTIONS = [
-  "Bali", "Java", "Central Java", "East Java", "West Java", "Sumatra", "North Sumatra",
-  "Sulawesi", "South Sulawesi", "Flores", "Lesser Sunda Islands", "Nusa Tenggara",
-  "East Nusa Tenggara", "West Nusa Tenggara", "Kalimantan", "Papua", "West Papua",
-  "Jakarta", "Bandung", "Yogyakarta", "Komodo", "Lombok", "International",
-];
-
+import { destinationRegions } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
 
+/** Region chip manager: admin-curated pool per destination. Supplier
+ *  suggestions (PENDING) appear here for approval before becoming selectable. */
+function RegionManager({ destinationId }: { destinationId: string }) {
+  const regions = destinationRegions(destinationId);
+  const active = regions.filter((r) => r.status === "ACTIVE");
+  const pending = regions.filter((r) => r.status === "PENDING");
+  return (
+    <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50/60 p-4">
+      <p className="label">
+        Regions <span className="font-normal text-gray-400">(sub-destinations suppliers pick from — e.g. Ubud, Seminyak)</span>
+      </p>
+      {active.length > 0 ? (
+        <div className="flex flex-wrap gap-2">
+          {active.map((r) => (
+            <form
+              key={r.id}
+              action={removeDestinationRegionAction}
+              className="inline-flex items-center gap-1.5 rounded-full border border-brand-200 bg-white px-3 py-1 text-sm text-brand-800"
+              title={r.created_by ? "Proposed by a supplier, approved" : "Added by admin"}
+            >
+              <input type="hidden" name="regionId" value={r.id} />
+              <span>{r.name}</span>
+              <button
+                type="submit"
+                className="ml-0.5 rounded-full px-1 text-gray-400 hover:bg-red-50 hover:text-red-600"
+                aria-label={`Remove ${r.name}`}
+              >
+                ×
+              </button>
+            </form>
+          ))}
+        </div>
+      ) : (
+        <p className="text-sm text-gray-400">No regions yet — add the first below. Suppliers will see them as a dropdown on the tour editor.</p>
+      )}
+
+      {pending.length > 0 && (
+        <div className="mt-3 border-t border-amber-200 pt-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">
+            Supplier suggestions ({pending.length})
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {pending.map((r) => (
+              <span
+                key={r.id}
+                className="inline-flex items-center gap-2 rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-sm text-amber-800"
+              >
+                {r.name}
+                <form action={setDestinationRegionStatusFormAction} className="inline">
+                  <input type="hidden" name="regionId" value={r.id} />
+                  <input type="hidden" name="status" value="ACTIVE" />
+                  <button type="submit" className="font-semibold text-brand-700 hover:underline">Approve</button>
+                </form>
+                <form action={setDestinationRegionStatusFormAction} className="inline">
+                  <input type="hidden" name="regionId" value={r.id} />
+                  <input type="hidden" name="status" value="REJECTED" />
+                  <button type="submit" className="text-gray-500 hover:text-red-600">Reject</button>
+                </form>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <form action={addDestinationRegionFormAction} className="mt-3 flex gap-2">
+        <input type="hidden" name="destinationId" value={destinationId} />
+        <input
+          name="name"
+          required
+          maxLength={80}
+          placeholder="e.g. Sidemen"
+          className="input max-w-xs py-1.5 text-sm"
+        />
+        <button type="submit" className="btn-primary btn-sm whitespace-nowrap">+ Add region</button>
+      </form>
+    </div>
+  );
+}
+
 function DestinationForm({
-  d, allRegions,
+  d,
 }: {
-  d?: { id: string; name: string; slug: string; region: string | null; regions?: string; tagline: string | null; description: string | null; hero_image: string | null; gallery: string; seo_title: string | null; seo_description: string | null; seo_keywords: string | null; featured: number };
-  allRegions: string[];
+  d?: { id: string; name: string; slug: string; tagline: string | null; description: string | null; hero_image: string | null; gallery: string; seo_title: string | null; seo_description: string | null; seo_keywords: string | null; featured: number };
 }) {
-  const selected = d
-    ? (d.regions ? parseJsonArray<string>(d.regions) : parseJsonArray<string>("[]").concat(d.region ? [d.region] : []))
-    : [];
-  const options = Array.from(new Set([...REGION_OPTIONS, ...allRegions, ...selected])).sort();
   return (
     <form action={saveDestinationFormAction} className="grid gap-3 sm:grid-cols-2">
       {d && <input type="hidden" name="id" value={d.id} />}
@@ -35,28 +106,6 @@ function DestinationForm({
       <div>
         <label className="label">Slug</label>
         <input name="slug" defaultValue={d?.slug ?? ""} className="input" placeholder="auto from name" />
-      </div>
-      <div className="sm:col-span-2">
-        <label className="label">
-          Regions <span className="font-normal text-gray-400">(hold Ctrl/Cmd to select multiple)</span>
-        </label>
-        <select
-          name="regions"
-          multiple
-          size={8}
-          defaultValue={selected}
-          className="input h-auto min-h-36 py-2"
-        >
-          {options.map((r) => (
-            <option key={r} value={r}>{r}</option>
-          ))}
-        </select>
-        <div className="mt-2 flex items-center gap-2">
-          <input name="region_custom" className="input py-1.5 text-sm" placeholder="…or add a custom region (comma-separated)" />
-        </div>
-        {selected.length > 0 && (
-          <p className="mt-1.5 text-xs text-gray-500">Currently: {selected.join(" · ")}</p>
-        )}
       </div>
       <div>
         <label className="label">Tagline</label>
@@ -100,28 +149,22 @@ function DestinationForm({
 export default async function AdminDestinationsPage({ searchParams }: { searchParams: Promise<{ error?: string; saved?: string }> }) {
   const sp = await searchParams;
   const destinations = all<{
-    id: string; name: string; slug: string; region: string | null; regions: string; tagline: string | null;
+    id: string; name: string; slug: string; tagline: string | null;
     description: string | null; hero_image: string | null; gallery: string; seo_title: string | null;
     seo_description: string | null; seo_keywords: string | null; featured: number;
   }>("SELECT * FROM destinations ORDER BY sort_order");
-
-  const allRegions = Array.from(
-    new Set(
-      destinations.flatMap((d) => parseJsonArray<string>(d.regions ?? "[]")).filter(Boolean),
-    ),
-  ).sort();
 
   return (
     <div className="space-y-5">
       <h1 className="text-xl font-bold">Destinations ({destinations.length})</h1>
 
       {sp.error && <div className="mb-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{sp.error}</div>}
-      {sp.saved && <div className="mb-3 rounded-xl bg-brand-50 px-4 py-3 text-sm text-brand-700">Destination saved — public pages updated.</div>}
+      {sp.saved && <div className="mb-3 rounded-xl bg-brand-50 px-4 py-3 text-sm text-brand-700">Saved — public pages updated.</div>}
 
       <details className="rounded-xl border border-brand-200 bg-brand-50/50 p-5" open={destinations.length === 0}>
         <summary className="cursor-pointer font-semibold text-brand-800">+ New destination</summary>
         <div className="mt-4">
-          <DestinationForm allRegions={allRegions} />
+          <DestinationForm />
         </div>
       </details>
 
@@ -135,7 +178,8 @@ export default async function AdminDestinationsPage({ searchParams }: { searchPa
             <span className="text-xs text-gray-400">click to edit</span>
           </summary>
           <div className="mt-4">
-            <DestinationForm d={d} allRegions={allRegions} />
+            <DestinationForm d={d} />
+            <RegionManager destinationId={d.id} />
             <form action={deleteDestinationAction} className="mt-3 text-right">
               <input type="hidden" name="id" value={d.id} />
               <ConfirmSubmit confirmText={`Delete destination ${d.name}? Tours keep existing but lose their link.`}>

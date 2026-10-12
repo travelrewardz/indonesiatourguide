@@ -96,6 +96,7 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string 
     tourId: id,
     supplierId: tour.supplier_id,
     allowSupplierChoice: auth.role === "ADMIN" || auth.role === "SUPER_ADMIN",
+    userId: auth.id,
   });
   if (!result.ok) return Response.json({ error: result.error }, { status: 400 });
   return Response.json({ ok: true, id: result.id, slug: result.slug });

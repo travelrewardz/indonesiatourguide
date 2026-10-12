@@ -472,6 +472,85 @@ export async function setQuoteStatusFormAction(formData: FormData): Promise<void
   if (id) await setQuoteStatusAction(id, status);
 }
 
+// -------------------------------------------------- destination regions
+/** Admin adds a sub-destination region to a destination's curated pool. */
+export async function addDestinationRegionAction(destinationId: string, name: string): Promise<{ error?: string }> {
+  await requireRole("ADMIN", "SUPER_ADMIN");
+  const clean = String(name ?? "").trim().slice(0, 80);
+  if (!clean) return { error: "Region name is required" };
+  const dest = get<{ id: string }>("SELECT id FROM destinations WHERE id = ?", destinationId);
+  if (!dest) return { error: "Destination not found" };
+  const { slugify } = await import("./format");
+  const slug = slugify(clean);
+  const clash = get<{ id: string; status: string }>(
+    "SELECT id, status FROM destination_regions WHERE destination_id = ? AND slug = ?",
+    destinationId, slug,
+  );
+  if (clash) {
+    // Re-activate a previously rejected/removed region instead of failing.
+    if (clash.status !== "ACTIVE") {
+      run("UPDATE destination_regions SET status = 'ACTIVE', created_by = NULL WHERE id = ?", clash.id);
+      revalidatePath("/destinations");
+      return {};
+    }
+    return { error: `\"${clean}\" is already in this destination's regions` };
+  }
+  run(
+    "INSERT INTO destination_regions (id, destination_id, name, slug, status, created_by, created_at) VALUES (?, ?, ?, ?, 'ACTIVE', NULL, ?)",
+    newId("drg"), destinationId, clean, slug, nowIso(),
+  );
+  syncDestinationRegions(destinationId);
+  revalidatePath("/destinations");
+  return {};
+}
+
+export async function addDestinationRegionFormAction(formData: FormData): Promise<void> {
+  const destinationId = String(formData.get("destinationId") ?? "");
+  const name = String(formData.get("name") ?? "");
+  const res = await addDestinationRegionAction(destinationId, name);
+  if (res.error) redirect(`/admin/destinations?error=${encodeURIComponent(res.error)}`);
+  redirect("/admin/destinations?saved=1");
+}
+
+/** Admin removes a region from the pool (tours that use it keep their label). */
+export async function removeDestinationRegionAction(formData: FormData): Promise<void> {
+  await requireRole("ADMIN", "SUPER_ADMIN");
+  const id = String(formData.get("regionId") ?? "");
+  const row = get<{ destination_id: string }>(
+    "SELECT destination_id FROM destination_regions WHERE id = ?", id,
+  );
+  if (!row) return;
+  run("DELETE FROM destination_regions WHERE id = ?", id);
+  syncDestinationRegions(row.destination_id);
+  revalidatePath("/destinations");
+}
+
+/** Admin approves or rejects a supplier-proposed region. */
+export async function setDestinationRegionStatusFormAction(formData: FormData): Promise<void> {
+  await requireRole("ADMIN", "SUPER_ADMIN");
+  const id = String(formData.get("regionId") ?? "");
+  const status = String(formData.get("status") ?? "ACTIVE") as "ACTIVE" | "REJECTED";
+  const row = get<{ destination_id: string }>(
+    "SELECT destination_id FROM destination_regions WHERE id = ?", id,
+  );
+  if (!row) return;
+  run("UPDATE destination_regions SET status = ? WHERE id = ?", status, id);
+  syncDestinationRegions(row.destination_id);
+  revalidatePath("/destinations");
+}
+
+/**
+ * Mirrors the ACTIVE region names into destinations.regions (JSON array) so
+ * public pages and older readers keep working without joining the new table.
+ */
+function syncDestinationRegions(destinationId: string): void {
+  const names = all<{ name: string }>(
+    "SELECT name FROM destination_regions WHERE destination_id = ? AND status = 'ACTIVE' ORDER BY name",
+    destinationId,
+  ).map((r) => r.name);
+  run("UPDATE destinations SET regions = ?, updated_at = ? WHERE id = ?", JSON.stringify(names), nowIso(), destinationId);
+}
+
 // ----------------------------------------------------------------- CMS pages
 export async function saveDestinationAction(formData: FormData): Promise<{ error?: string }> {
   await requireRole("ADMIN", "SUPER_ADMIN");
@@ -480,23 +559,12 @@ export async function saveDestinationAction(formData: FormData): Promise<{ error
   if (!name) return { error: "Name is required" };
   const { slugify } = await import("./format");
   const slug = slugify(String(formData.get("slug") ?? "") || name);
+  // Regions are managed via the destination_regions table (see the chip
+  // manager in the admin UI) and mirrored into destinations.regions by
+  // syncDestinationRegions — this form does not touch them.
   const data = {
     name,
     slug,
-    // Multi-select dropdown sends several `regions` values; a single custom
-    // region may also be typed into `region_custom`. Legacy `region` field is
-    // still accepted as a fallback. The first region is mirrored into the
-    // legacy single-value column for backward compatibility.
-    region: null as string | null, // set below from regions[0]
-    regions: Array.from(
-      new Set(
-        [
-          ...formData.getAll("regions").map((v) => String(v).trim().slice(0, 80)),
-          ...String(formData.get("region_custom") ?? "").split(",").map((v) => v.trim().slice(0, 80)),
-          String(formData.get("region") ?? "").trim().slice(0, 80), // legacy single-value input
-        ].filter(Boolean),
-      ),
-    ).slice(0, 6),
     tagline: String(formData.get("tagline") ?? "").slice(0, 120) || null,
     description: String(formData.get("description") ?? "").slice(0, 8000) || null,
     hero_image: String(formData.get("hero_image") ?? "").slice(0, 1000) || null,
@@ -506,15 +574,15 @@ export async function saveDestinationAction(formData: FormData): Promise<{ error
     seo_keywords: String(formData.get("seo_keywords") ?? "").slice(0, 400) || null,
     featured: formData.get("featured") === "on" ? 1 : 0,
   };
-  data.region = data.regions[0] ?? null;
 
   if (id) {
     const existing = get<{ id: string }>("SELECT id FROM destinations WHERE id = ?", id);
     if (!existing) return { error: "Destination not found" };
     run(
-      `UPDATE destinations SET name = ?, slug = ?, region = ?, regions = ?, tagline = ?, description = ?, hero_image = ?, gallery = ?,
+      // region/regions mirrors are owned by syncDestinationRegions, not this form.
+      `UPDATE destinations SET name = ?, slug = ?, tagline = ?, description = ?, hero_image = ?, gallery = ?,
         seo_title = ?, seo_description = ?, seo_keywords = ?, featured = ?, updated_at = ? WHERE id = ?`,
-      data.name, data.slug, data.region, JSON.stringify(data.regions), data.tagline, data.description, data.hero_image, JSON.stringify(data.gallery),
+      data.name, data.slug, data.tagline, data.description, data.hero_image, JSON.stringify(data.gallery),
       data.seo_title, data.seo_description, data.seo_keywords, data.featured, nowIso(), id,
     );
   } else {
@@ -525,7 +593,7 @@ export async function saveDestinationAction(formData: FormData): Promise<{ error
       `INSERT INTO destinations (id, name, slug, region, regions, tagline, description, hero_image, gallery, seo_title,
         seo_description, seo_keywords, featured, sort_order, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      newId("dst"), data.name, data.slug, data.region, JSON.stringify(data.regions), data.tagline, data.description, data.hero_image,
+      newId("dst"), data.name, data.slug, null, "[]", data.tagline, data.description, data.hero_image,
       JSON.stringify(data.gallery), data.seo_title, data.seo_description, data.seo_keywords, data.featured,
       nextOrder, nowIso(), nowIso(),
     );

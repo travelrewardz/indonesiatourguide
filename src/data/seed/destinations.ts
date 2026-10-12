@@ -23,7 +23,8 @@ export const SEED_DESTINATIONS: SeedDestination[] = [
     name: "Bali",
     slug: "bali",
     region: "Lesser Sunda Islands",
-    regions: ["Lesser Sunda Islands", "Bali"],
+    regions: ["Ubud","Seminyak","Canggu","Uluwatu","Sanur","Jimbaran","Amed","Munduk","Besakih","Nusa Penida"],
+
     tagline: "Island of the Gods",
     description:
       "Bali is Indonesia's most beloved island — a landscape of emerald rice terraces, cliff-top sea temples, volcano interiors and living Hindu culture. From the artistic heart of Ubud to the beach towns of Seminyak and Sanur, Bali rewards first-time visitors and seasoned travellers alike with temples, ceremonies, craft villages and world-class diving.",
@@ -41,6 +42,7 @@ export const SEED_DESTINATIONS: SeedDestination[] = [
     name: "Java",
     slug: "java",
     region: "Java",
+    regions: ["Yogyakarta","Surabaya","Malang","Jakarta","Bandung"],
     tagline: "Heart of Indonesia",
     description:
       "Java is the dramatic core of Indonesia — home to Borobudur, the world's largest Buddhist temple, Prambanan's Hindu spires, and a spine of active volcanoes. Between Yogyakarta's sultanate culture and East Java's otherworldly craters, Java offers the country's richest concentration of UNESCO heritage and landscapes.",
@@ -57,7 +59,7 @@ export const SEED_DESTINATIONS: SeedDestination[] = [
     key: "yogyakarta",
     name: "Yogyakarta",
     slug: "yogyakarta",
-    regions: ["Central Java", "Java"],
+    regions: ["Malioboro","Borobudur","Prambanan","Kota Gede","Gunungkidul"],
     region: "Central Java",
     tagline: "Cultural Capital",
     description:
@@ -75,7 +77,7 @@ export const SEED_DESTINATIONS: SeedDestination[] = [
     key: "bromo",
     name: "Bromo",
     slug: "bromo",
-    regions: ["East Java", "Java"],
+    regions: ["Penanjakan","Tengger","Cemoro Lawang","Tumpak Sewu"],
     region: "East Java",
     tagline: "Sunrise Over the Tengger Caldera",
     description:
@@ -94,6 +96,7 @@ export const SEED_DESTINATIONS: SeedDestination[] = [
     name: "Ijen",
     slug: "ijen",
     region: "East Java",
+    regions: ["Paltuding","Blawan","Licin","Bondowoso"],
     tagline: "Blue Fire Crater",
     description:
       "Kawah Ijen is a turquoise acid lake fed by sulfurous vents that glow electric blue at night — one of the rare places on Earth where volcanic blue fire can be witnessed. The daytime view of the milky-green crater lake is equally unforgettable.",
@@ -111,6 +114,7 @@ export const SEED_DESTINATIONS: SeedDestination[] = [
     name: "East Java",
     slug: "east-java",
     region: "Java",
+    regions: ["Surabaya","Malang","Banyuwangi","Tengger","Paltuding"],
     tagline: "Volcanoes & Waterfalls",
     description:
       "East Java is Indonesia's adventure province: the Bromo-Tengger-Semeru highlands, the blue flames of Ijen, and the thousand-tier cascade of Tumpak Sewu. Less visited than Bali, it delivers some of the archipelago's most spectacular scenery.",
@@ -128,6 +132,7 @@ export const SEED_DESTINATIONS: SeedDestination[] = [
     name: "Jakarta",
     slug: "jakarta",
     region: "Java",
+    regions: ["Kota Tua","Menteng","Thousand Islands"],
     tagline: "Capital Energy",
     description:
       "Jakarta is Indonesia's sprawling capital — a high-rise megacity of street food, colonial Batavia, vibrant markets and world-class dining. Most travellers use it as a gateway, but the city rewards a day or two of exploration.",
@@ -144,6 +149,7 @@ export const SEED_DESTINATIONS: SeedDestination[] = [
     name: "Bandung",
     slug: "bandung",
     region: "West Java",
+    regions: ["Lembang","Dago","Ciwidey","Tangkuban Parahu"],
     tagline: "Highland Retreat",
     description:
       "Bandung sits in a cool basin ringed by tea plantations and volcanoes — West Java's design and culinary capital, an easy escape from Jakarta with Ciwidey's tea estates, hot springs and Tangkuban Perahu crater.",
@@ -160,6 +166,7 @@ export const SEED_DESTINATIONS: SeedDestination[] = [
     name: "Sulawesi",
     slug: "sulawesi",
     region: "Sulawesi",
+    regions: ["Makassar","Rantepao","Bunaken","Manado"],
     tagline: "Culture Below the Surface",
     description:
       "Sulawesi is shaped like an orchid and packed with contrasts — the cliff burial sites of Tana Toraja, the shark-rich reefs of Bunaken, and the bustling port of Makassar. It is Indonesia's best combination of deep culture and world-class marine life.",
@@ -176,6 +183,7 @@ export const SEED_DESTINATIONS: SeedDestination[] = [
     name: "Toraja",
     slug: "toraja",
     region: "South Sulawesi",
+    regions: ["Rantepao","Kete Kesu","Lemo","Batutumonga"],
     tagline: "Land of Heavenly Kings",
     description:
       "Tana Toraja's tongkonan houses, cliff graves and elaborate funeral ceremonies make it one of Southeast Asia's most fascinating cultures. The highland scenery of rice terraces and coffee forests is a welcome contrast to Sulawesi's coast.",
@@ -192,6 +200,7 @@ export const SEED_DESTINATIONS: SeedDestination[] = [
     name: "Labuan Bajo",
     slug: "labuan-bajo",
     region: "Flores",
+    regions: ["Labuan Bajo Town","Padar Island","Kelor","Rinca"],
     tagline: "Gateway to Komodo",
     description:
       "Labuan Bajo is the launchpad for Komodo National Park — a once-quiet fishing town now home to phinisi schooners, sunset hills and the best diving in eastern Indonesia. Sail, dive, trek dragons and watch manta rays glide by.",
@@ -208,6 +217,7 @@ export const SEED_DESTINATIONS: SeedDestination[] = [
     name: "Flores",
     slug: "flores",
     region: "East Nusa Tenggara",
+    regions: ["Moni","Ende","Bajawa","Ruteng","Wae Rebo"],
     tagline: "Island of a Thousand Hills",
     description:
       "Flores is a ribbon of volcanic peaks, crater lakes and weaving villages — from the tri-coloured lakes of Kelimutu to the conical thatched houses of Wae Rebo. Overland journeys across the island are among Indonesia's finest road trips.",
@@ -223,7 +233,7 @@ export const SEED_DESTINATIONS: SeedDestination[] = [
     key: "komodo",
     name: "Komodo",
     slug: "komodo",
-    regions: ["Flores", "Lesser Sunda Islands", "East Nusa Tenggara"],
+    regions: ["Padar Island", "Rinca", "Kelor", "Manta Point", "Taka Makassar"],
     region: "East Nusa Tenggara",
     tagline: "Land of the Dragons",
     description:
@@ -240,7 +250,7 @@ export const SEED_DESTINATIONS: SeedDestination[] = [
     key: "lombok",
     name: "Lombok",
     slug: "lombok",
-    regions: ["West Nusa Tenggara", "Lesser Sunda Islands"],
+    regions: ["Kuta Mandalika", "Senggigi", "Sembalun", "Tetebatu", "Bangsal"],
     region: "West Nusa Tenggara",
     tagline: "The Untouched Sibling",
     description:
@@ -258,6 +268,7 @@ export const SEED_DESTINATIONS: SeedDestination[] = [
     name: "Gili Islands",
     slug: "gili-islands",
     region: "West Nusa Tenggara",
+    regions: ["Gili Trawangan","Gili Air","Gili Meno"],
     tagline: "Car-Free Paradise",
     description:
       "The Gilis — Trawangan, Meno and Air — are tiny coral-fringed islands where the transport is horse cart and bicycle. Snorkel with sea turtles, dive pristine reefs and watch the sunset over Mount Rinjani across the strait.",
@@ -274,6 +285,7 @@ export const SEED_DESTINATIONS: SeedDestination[] = [
     name: "Nusa Penida",
     slug: "nusa-penida",
     region: "Bali",
+    regions: ["Kelingking","Broken Beach","Angel's Billabong","Crystal Bay","Atuh Beach"],
     tagline: "Rugged Island Off Bali",
     description:
       "Nusa Penida's limestone cliffs drop into turquoise water — home to Kelingking's T-Rex bay, Angel's Billabong and manta rays gliding off Crystal Bay. A fast boat from Sanur puts this wild island within a day's reach of Bali.",
@@ -289,7 +301,7 @@ export const SEED_DESTINATIONS: SeedDestination[] = [
     key: "raja-ampat",
     name: "Raja Ampat",
     slug: "raja-ampat",
-    regions: ["West Papua", "Papua"],
+    regions: ["Waisai", "Dampier Strait", "Misool", "Arborek", "Piaynemo"],
     region: "West Papua",
     tagline: "The Last Paradise",
     description:
@@ -307,6 +319,7 @@ export const SEED_DESTINATIONS: SeedDestination[] = [
     name: "Sumatra",
     slug: "sumatra",
     region: "Sumatra",
+    regions: ["Lake Toba","Samosir","Bukit Lawang","Padang","Mentawai Islands"],
     tagline: "Wild & Primordial",
     description:
       "Sumatra is Indonesia's wildest large island — orangutans in the Sumatran rainforest, the immense caldera of Lake Toba, and volcanoes along the equator. It is a destination for travellers who want nature at full scale.",
@@ -323,6 +336,7 @@ export const SEED_DESTINATIONS: SeedDestination[] = [
     name: "Papua",
     slug: "papua",
     region: "Western New Guinea",
+    regions: ["Baliem Valley","Jayapura","Asmat"],
     tagline: "The Final Frontier",
     description:
       "Papua's highlands and coasts remain Indonesia's least-travelled — the Baliem Valley's Dani tribes, dense rainforest and bird-of-paradise country. Expeditions here are for the genuinely curious.",

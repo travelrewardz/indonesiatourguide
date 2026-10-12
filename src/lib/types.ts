@@ -52,6 +52,18 @@ export type Agent = {
   updated_at: string;
 };
 
+
+export type DestinationRegionStatus = "ACTIVE" | "PENDING" | "REJECTED";
+
+export type DestinationRegion = {
+  id: string;
+  destination_id: string;
+  name: string;
+  slug: string;
+  status: DestinationRegionStatus;
+  created_by: string | null;
+  created_at: string;
+};
 export type Destination = {
   id: string;
   name: string;

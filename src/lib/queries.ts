@@ -1,5 +1,5 @@
 import { all, get } from "./db";
-import type { BlogPost, Destination, Review, Tour, TourImage, TourOption } from "./types";
+import type { BlogPost, Destination, DestinationRegion, Review, Tour, TourImage, TourOption } from "./types";
 
 /** Shared read queries for public pages. All values come from the database. */
 
@@ -61,6 +61,49 @@ export function publishedDestinations(featuredOnly = false): Destination[] {
 
 export function destinationBySlug(slug: string): Destination | undefined {
   return get<Destination>("SELECT * FROM destinations WHERE slug = ?", slug);
+}
+
+/** Sub-destination regions for a destination (curated pool; optionally filtered by status). */
+export function destinationRegions(destinationId: string, status?: string): DestinationRegion[] {
+  if (status) {
+    return all<DestinationRegion>(
+      "SELECT * FROM destination_regions WHERE destination_id = ? AND status = ? ORDER BY name",
+      destinationId, status,
+    );
+  }
+  return all<DestinationRegion>(
+    "SELECT * FROM destination_regions WHERE destination_id = ? ORDER BY name",
+    destinationId,
+  );
+}
+
+/** Destinations with their ACTIVE region pools — feeds the tour editor's
+ *  per-destination region multi-select. */
+export function destinationsWithRegions(): { slug: string; name: string; regions: string[] }[] {
+  const dests = all<{ id: string; slug: string; name: string }>(
+    "SELECT id, slug, name FROM destinations ORDER BY sort_order, name",
+  );
+  const byDest = new Map<string, string[]>();
+  const rows = all<{ destination_id: string; name: string }>(
+    "SELECT destination_id, name FROM destination_regions WHERE status = 'ACTIVE' ORDER BY name",
+  );
+  for (const r of rows) {
+    if (!byDest.has(r.destination_id)) byDest.set(r.destination_id, []);
+    byDest.get(r.destination_id)!.push(r.name);
+  }
+  return dests.map((d) => ({ slug: d.slug, name: d.name, regions: byDest.get(d.id) ?? [] }));
+}
+
+/** All regions grouped by destination slug — { bali: ["Ubud", ...], ... } (ACTIVE only). */
+export function regionsByDestination(): Record<string, string[]> {
+  const rows = all<{ slug: string; name: string }>(
+    `SELECT d.slug, r.name FROM destination_regions r
+     JOIN destinations d ON d.id = r.destination_id
+     WHERE r.status = 'ACTIVE' ORDER BY d.sort_order, r.name`,
+  );
+  const map: Record<string, string[]> = {};
+  for (const r of rows) (map[r.slug] ??= []).push(r.name);
+  return map;
 }
 
 export function tourImages(tourId: string): TourImage[] {

@@ -1,10 +1,11 @@
 import TourEditor from "@/components/tour/TourEditor";
 import { all } from "@/lib/db";
+import { destinationsWithRegions } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminNewTourPage() {
-  const destinations = all<{ slug: string; name: string; region: string | null }>("SELECT slug, name, region FROM destinations ORDER BY sort_order");
+  const destinations = destinationsWithRegions();
   const suppliers = all<{ id: string; company_name: string }>("SELECT id, company_name FROM suppliers ORDER BY company_name");
 
   return (

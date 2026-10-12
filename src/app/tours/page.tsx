@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import TourCard from "@/components/TourCard";
 import JsonLd from "@/components/JsonLd";
-import { publishedDestinations, searchTours, tourCategories } from "@/lib/queries";
+import { publishedDestinations, regionsByDestination, searchTours, tourCategories } from "@/lib/queries";
 import { getDisplayCurrency, getLocale } from "@/lib/prefs";
 import { buildMetadata, breadcrumbLd } from "@/lib/seo";
 import { t } from "@/lib/i18n";
@@ -36,6 +36,7 @@ export default async function ToursPage({ searchParams }: { searchParams: Params
   const filters = {
     q: str(p.q) || undefined,
     destination: str(p.destination) || undefined,
+    region: str(p.region) || undefined,
     category: str(p.category) || undefined,
     minDays: Number(str(p.minDays) || 0) || undefined,
     maxDays: Number(str(p.maxDays) || 0) || undefined,
@@ -47,6 +48,9 @@ export default async function ToursPage({ searchParams }: { searchParams: Params
 
   const results = searchTours(filters);
   const destinations = publishedDestinations();
+  const regionsByDest = regionsByDestination();
+  const regionChoices = regionsByDest[filters.destination ?? ""] ?? [];
+
   const categories = tourCategories();
   const travelDate = str(p.date);
   const travelers = str(p.travelers);
@@ -68,7 +72,9 @@ export default async function ToursPage({ searchParams }: { searchParams: Params
             <Link href="/" className="hover:text-accent">Home</Link> / Tours
           </div>
           <h1 className="font-display mt-2 text-3xl font-medium sm:text-4xl">
-            {filters.destination
+            {filters.region
+              ? `Tours in ${filters.region.replace(/-/g, " ")}, ${destinations.find((d) => d.slug === filters.destination)?.name ?? filters.destination}`
+              : filters.destination
               ? `Tours in ${destinations.find((d) => d.slug === filters.destination)?.name ?? filters.destination}`
               : filters.category
                 ? `${filters.category} tours in Indonesia`
@@ -95,6 +101,13 @@ export default async function ToursPage({ searchParams }: { searchParams: Params
               <select id="f-dest" name="destination" defaultValue={filters.destination ?? ""} className="input">
                 <option value="">{tr("common.all")}</option>
                 {destinations.map((d) => <option key={d.slug} value={d.slug}>{d.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="label" htmlFor="f-region">Region / Area</label>
+              <select id="f-region" name="region" defaultValue={filters.region ?? ""} className="input">
+                <option value="">{tr("common.all")}</option>
+                {regionChoices.map((r) => <option key={r} value={r}>{r}</option>)}
               </select>
             </div>
             <div>

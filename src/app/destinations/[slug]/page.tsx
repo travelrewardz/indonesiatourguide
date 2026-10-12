@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import TourCard from "@/components/TourCard";
 import JsonLd from "@/components/JsonLd";
-import { destinationBySlug, toursByDestination, setting } from "@/lib/queries";
+import { destinationBySlug, toursByDestination, destinationRegions, setting } from "@/lib/queries";
 import { publishedDestinations } from "@/lib/queries";
 import { parseJsonArray } from "@/lib/json";
 import { getDisplayCurrency } from "@/lib/prefs";
@@ -70,6 +70,25 @@ export default async function DestinationPage({ params }: Ctx) {
                 <h2 className="font-display text-2xl font-medium">Tours in {dest.name}</h2>
                 <span className="text-sm text-gray-500">{tours.length} available</span>
               </div>
+
+            {(() => {
+              const pool = destinationRegions(dest.id, "ACTIVE");
+              if (!pool.length) return null;
+              return (
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Explore areas:</span>
+                  {pool.map((r) => (
+                    <Link
+                      key={r.id}
+                      href={`/tours?destination=${dest.slug}&region=${encodeURIComponent(r.name)}`}
+                      className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-sm text-gray-700 transition hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700"
+                    >
+                      {r.name}
+                    </Link>
+                  ))}
+                </div>
+              );
+            })()}
               {tours.length ? (
                 <div className="mt-6 grid gap-6 sm:grid-cols-2">
                   {tours.map((t) => <TourCard key={t.id} tour={t} currency={currency} />)}

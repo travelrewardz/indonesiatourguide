@@ -390,4 +390,36 @@ export const MIGRATIONS: string[] = [
   ALTER TABLE destinations ADD COLUMN regions TEXT NOT NULL DEFAULT '[]'; -- JSON array of region names
   UPDATE destinations SET regions = json_array(region) WHERE region IS NOT NULL AND region <> '' AND regions = '[]';
  `,
+
+  // ------------------------------------------------ v4 destination regions
+  // Destination = main place (Bali, Java); region = sub-destination within it
+  // (Ubud, Seminyak, …). Admin curates the per-destination pool; suppliers
+  // multi-select from it when building a tour and may propose new ones
+  // (stored as PENDING until an admin approves).
+  `
+  CREATE TABLE destination_regions (
+    id             TEXT PRIMARY KEY,
+    destination_id TEXT NOT NULL REFERENCES destinations(id) ON DELETE CASCADE,
+    name           TEXT NOT NULL,
+    slug           TEXT NOT NULL,
+    status         TEXT NOT NULL DEFAULT 'ACTIVE', -- ACTIVE | PENDING | REJECTED
+    created_by     TEXT REFERENCES users(id) ON DELETE SET NULL, -- NULL = added by admin
+    created_at     TEXT NOT NULL
+  );
+  CREATE UNIQUE INDEX idx_destination_regions_unique ON destination_regions(destination_id, slug);
+  CREATE INDEX idx_destination_regions_dest ON destination_regions(destination_id, status);
+
+  -- Backfill the pool from the v3 JSON array (dedupes via the unique index
+  -- on a second run; backfill itself is idempotent thanks to WHERE NOT EXISTS).
+  INSERT INTO destination_regions (id, destination_id, name, slug, status, created_at)
+  SELECT 'drg_' || lower(hex(randomblob(6))), d.id, j.value,
+         replace(lower(trim(CAST(j.value AS TEXT))), ' ', '-'), 'ACTIVE', d.updated_at
+  FROM destinations d, json_each(d.regions) j
+  WHERE json_valid(d.regions)
+    AND NOT EXISTS (
+      SELECT 1 FROM destination_regions dr
+      WHERE dr.destination_id = d.id
+        AND dr.slug = replace(lower(trim(CAST(j.value AS TEXT))), ' ', '-')
+    );
+ `,
 ];

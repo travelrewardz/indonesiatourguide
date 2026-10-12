@@ -221,7 +221,7 @@ export default function TourEditor({
   tourId, destinations, suppliers, redirectBase, defaultCurrency,
 }: {
   tourId?: string;
-  destinations: { slug: string; name: string; region?: string | null }[];
+  destinations: { slug: string; name: string; regions?: string[] }[];
   suppliers?: { id: string; company_name: string }[];
   redirectBase: string;
   defaultCurrency?: string;
@@ -336,13 +336,16 @@ export default function TourEditor({
   const inp = "input";
   const num = "input";
   const selectedDestinations = destinations.filter((d) => state.destinations.includes(d.slug));
-  const regionSuggestions = Array.from(
+  // Pool = union of the curated regions of the destinations selected above.
+  // Empty pool is fine: the supplier can still type their own region(s).
+  const regionPool = Array.from(
     new Set([
-      ...selectedDestinations.map((d) => d.region).filter(Boolean),
+      ...selectedDestinations.flatMap((d) => d.regions ?? []),
       ...REGION_PRESETS,
       ...state.regions,
     ]),
   ).filter((r) => r && !state.regions.includes(r)) as string[];
+  const regionSuggestions = regionPool;
   const categoryChoices = Array.from(new Set([...CATEGORY_PRESETS, ...state.categories])).map((c) => ({ value: c, label: c }));
 
   return (
@@ -433,15 +436,24 @@ export default function TourEditor({
                 selected={state.destinations}
                 onToggle={(v) => toggleMulti("destinations", v)}
               />
-              <datalist id="te-region-sug">{regionSuggestions.map((r) => <option key={r} value={r} />)}</datalist>
+              <datalist id="te-region-sug">{regionPool.map((r) => <option key={r} value={r} />)}</datalist>
               <ChipPicker
-                label="Region (multiple — pick per destination)"
-                hint="Suggestions come from the destinations you selected."
-                choices={state.regions.map((r) => ({ value: r, label: r }))}
+                label="Regions (sub-destinations — select several)"
+                hint={
+                  selectedDestinations.length === 0
+                    ? "Pick a destination above first — its regions will appear here. You can always add your own."
+                    : regionPool.length
+                      ? `Regions available for ${selectedDestinations.map((d) => d.name).join(", ")}. New regions you add are sent to admin for approval.`
+                      : `No curated regions for ${selectedDestinations.map((d) => d.name).join(", ")} yet — add your own below (admin will review).`
+                }
+                choices={[
+                  ...regionPool.map((r) => ({ value: r, label: r })),
+                  ...state.regions.map((r) => ({ value: r, label: `${r} ★` })),
+                ]}
                 selected={state.regions}
                 onToggle={(v) => toggleMulti("regions", v)}
                 onAdd={(v) => toggleMulti("regions", v)}
-                addPlaceholder="e.g. East Java"
+                addPlaceholder="e.g. Sidemen"
                 addListId="te-region-sug"
               />
               <datalist id="te-cat-sug">{CATEGORY_PRESETS.map((c) => <option key={c} value={c} />)}</datalist>

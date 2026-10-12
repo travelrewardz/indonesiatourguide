@@ -115,7 +115,7 @@ export async function POST(req: NextRequest) {
   } catch {
     return Response.json({ error: "Invalid request body" }, { status: 400 });
   }
-  const result = await saveTour(body, { supplierId, allowSupplierChoice });
+  const result = await saveTour(body, { supplierId, allowSupplierChoice, userId: auth.id });
   if (!result.ok) return Response.json({ error: result.error }, { status: 400 });
   return Response.json({ ok: true, id: result.id, slug: result.slug }, { status: 201 });
 }

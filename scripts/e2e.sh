@@ -10,7 +10,6 @@
 # ---------------------------------------------------------------------------
 set -u
 BASE="${BASE:-http://localhost:3000}"
-SECRET="${WEBHOOK_SECRET:-test-secret-123}"
 PASS=0; FAIL=0
 JAR_A=$(mktemp); JAR_SUP=$(mktemp); JAR_ADMIN=$(mktemp)
 
@@ -25,6 +24,30 @@ curl() { command curl -H "X-Forwarded-For: e2e-$RUN_ID" "$@"; }
 if [ "${RESET:-1}" != "0" ]; then
   echo "== 0. Reset database to pristine seed state =="
   npx tsx scripts/reset-db.ts || { echo "database reset failed"; exit 1; }
+fi
+
+# Secret used to sign sandbox webhooks. Order: explicit env > PAYMENT_WEBHOOK_SECRET
+# in .env/_next runtime env > the app's lazy fallback row in the settings table
+# (the server generates it on first webhook verification when no env is set).
+SECRET="${WEBHOOK_SECRET:-}"
+if [ -z "$SECRET" ]; then
+  SECRET=$(node -e "
+const { DatabaseSync } = require('node:sqlite');
+const db = new DatabaseSync(process.env.DATABASE_PATH || 'data/itg.sqlite');
+const row = db.prepare(\"SELECT value FROM settings WHERE key = 'webhook_secret'\").get();
+process.stdout.write(row ? row.value : '');
+" 2>/dev/null)
+fi
+if [ -z "$SECRET" ]; then
+  # Force the server to materialise it: a forged probe triggers verification,
+  # which lazily writes the fallback row; re-read it afterwards.
+  curl -s -o /dev/null -X POST "$BASE/api/payments/webhook/sandbox" -H 'Content-Type: application/json' -d '{"paymentId":"probe","status":"PAID","signature":"x"}'
+  SECRET=$(node -e "
+const { DatabaseSync } = require('node:sqlite');
+const db = new DatabaseSync(process.env.DATABASE_PATH || 'data/itg.sqlite');
+const row = db.prepare(\"SELECT value FROM settings WHERE key = 'webhook_secret'\").get();
+process.stdout.write(row ? row.value : '');
+" 2>/dev/null)
 fi
 
 ok()   { PASS=$((PASS+1)); echo "  ✓ $1"; }
