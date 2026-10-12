@@ -3,6 +3,7 @@ import { all, get } from "@/lib/db";
 import { saveBlogPostFormAction, deleteBlogPostAction } from "@/lib/actions";
 import ConfirmSubmit from "@/components/ConfirmSubmit";
 import ImageUploadField from "@/components/ImageUploadField";
+import MarkdownContentEditor from "@/components/MarkdownContentEditor";
 import type { BlogPost } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -73,7 +74,7 @@ export default async function AdminBlogEditPage({ params }: { params: Promise<{ 
 
         <div>
           <label className="label">Content (Markdown)</label>
-          <textarea name="content" rows={20} defaultValue={post.content} className="input font-mono text-sm leading-6" required />
+          <MarkdownContentEditor defaultValue={post.content} />
         </div>
 
         <div className="grid gap-4 sm:grid-cols-3">
