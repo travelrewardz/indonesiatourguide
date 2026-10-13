@@ -3,6 +3,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { uploadsDir } from "@/lib/uploads";
 import { requireApi, isSameOriginRequest, rateLimit } from "@/lib/auth";
+import { put } from "@vercel/blob";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -72,6 +73,26 @@ export async function POST(req: NextRequest) {
   }
 
   const name = `${Date.now()}-${bytes.length}-${crypto.randomUUID().slice(0, 8)}.${spec.ext}`;
+
+  // Durable object storage when a Vercel Blob store is connected to the
+  // project (the dashboard injects BLOB_READ_WRITE_TOKEN). Serverless hosts
+  // have no writable disk, so without it uploads would live only in that
+  // function's ephemeral /tmp. Local dev and disk-based hosts fall back to
+  // the uploads directory next to the database.
+  const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
+  if (blobToken) {
+    try {
+      const blob = await put(`uploads/${name}`, Buffer.from(bytes), {
+        access: "public",
+        contentType: file.type,
+        token: blobToken,
+      });
+      return Response.json({ ok: true, url: blob.url }, { status: 201 });
+    } catch {
+      return badRequest("Could not store the image — try again", 500);
+    }
+  }
+
   const dir = uploadsDir();
   try {
     await mkdir(dir, { recursive: true });
