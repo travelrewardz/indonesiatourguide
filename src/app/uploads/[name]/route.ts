@@ -1,4 +1,5 @@
 import path from "node:path";
+import { uploadsDir } from "@/lib/uploads";
 import { readFile, stat } from "node:fs/promises";
 
 export const runtime = "nodejs";
@@ -28,7 +29,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ name: string }
     return Response.json({ error: "Not found" }, { status: 404 });
   }
 
-  const dir = path.join(process.cwd(), "data", "uploads");
+  const dir = uploadsDir();
   const filePath = path.resolve(dir, name);
   if (path.dirname(filePath) !== dir) {
     return Response.json({ error: "Not found" }, { status: 404 });

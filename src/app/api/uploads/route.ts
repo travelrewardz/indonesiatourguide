@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { uploadsDir } from "@/lib/uploads";
 import { requireApi, isSameOriginRequest, rateLimit } from "@/lib/auth";
 
 export const runtime = "nodejs";
@@ -71,7 +72,7 @@ export async function POST(req: NextRequest) {
   }
 
   const name = `${Date.now()}-${bytes.length}-${crypto.randomUUID().slice(0, 8)}.${spec.ext}`;
-  const dir = path.join(process.cwd(), "data", "uploads");
+  const dir = uploadsDir();
   try {
     await mkdir(dir, { recursive: true });
     await writeFile(path.join(dir, name), bytes, { flag: "wx" });
